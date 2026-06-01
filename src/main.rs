@@ -1,6 +1,5 @@
 use clap::Parser;
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -105,10 +104,6 @@ fn main() {
 
     let mut replaced_count = 0u64;
     let mut matched_count = 0u64;
-    // Track parent directories where a match has already been found.
-    // Since a single directory cannot have two files with the same name,
-    // finding one match means all other files in the same directory can be skipped.
-    let mut matched_parents: HashSet<PathBuf> = HashSet::new();
 
     for entry in WalkDir::new(&args.target).into_iter().filter_map(|e| e.ok()) {
         let entry_path = entry.path();
@@ -121,16 +116,6 @@ fn main() {
         // Skip the new file itself if it happens to be inside the target directory
         if entry_path == args.new {
             continue;
-        }
-
-        // Optimization: skip if a match was already found in the same parent directory.
-        // A single directory cannot contain two files with the same name, so once we've
-        // found and processed a match in a directory, all remaining files there are
-        // guaranteed not to match (different name) and can be safely skipped.
-        if let Some(parent) = entry_path.parent() {
-            if matched_parents.contains(parent) {
-                continue;
-            }
         }
 
         let entry_name = match entry_path.file_name() {
@@ -168,19 +153,13 @@ fn main() {
 
         matched_count += 1;
 
-        // Record that we found a match in this directory, so remaining files
-        // in the same directory can be skipped (same-name optimization).
-        if let Some(parent) = entry_path.parent() {
-            matched_parents.insert(parent.to_path_buf());
-        }
-
         // File matches — replace it with the NEW file
         if args.dry_run {
-            println!("[DRY RUN] Would replace: {}; Size: {}", entry_path.display(),entry_size);
+            println!("[DRY RUN] Would replace: {};Size: {}", entry_path.display(),entry_size);
         } else {
             match fs::copy(&args.new, entry_path) {
                 Ok(_) => {
-                    println!("Replaced: {}; Size: {}", entry_path.display(),entry_size);
+                    println!("Replaced: {}", entry_path.display());
                     replaced_count += 1;
                 }
                 Err(e) => {
