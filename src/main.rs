@@ -105,31 +105,17 @@ fn main() {
     let mut replaced_count = 0u64;
     let mut matched_count = 0u64;
 
-    for entry in WalkDir::new(&args.target).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(&args.target)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| e.path() != args.new)
+        .filter(move |e| e.file_name().to_string_lossy() == old_name.as_str())
+    {
         let entry_path = entry.path();
 
-        // Skip directories
-        if !entry_path.is_file() {
-            continue;
-        }
-
-        // Skip the new file itself if it happens to be inside the target directory
-        if entry_path == args.new {
-            continue;
-        }
-
-        let entry_name = match entry_path.file_name() {
-            Some(name) => name.to_string_lossy().to_string(),
-            None => continue,
-        };
-
-        // Step 1: Check filename match against the OLD file name
-        if entry_name != old_name {
-            continue;
-        }
-
-        // Step 2: Check file size match (fast filter)
-        let entry_size = match fs::metadata(entry_path) {
+        // Check file size match (fast filter)
+        let entry_size = match entry.metadata() {
             Ok(meta) => meta.len(),
             Err(_) => continue,
         };
