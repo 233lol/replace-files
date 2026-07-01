@@ -1,0 +1,5 @@
+# Cargo-level optimization settings
+
+# Use the native CPU's instructions for best performance on the current machine
+[target.'cfg(all())']
+rustflags = ["-C", "target-cpu=native"]

@@ -7,3 +7,31 @@ edition = "2024"
 clap = { version = "4", features = ["derive"] }
 sha2 = "0.10"
 walkdir = "2"
+
+# --- Compilation Optimizations ---
+
+# Release profile: optimize for speed with size considerations
+[profile.release]
+opt-level = 3          # Max speed optimization
+lto = true             # Link-time optimization (fat = cross-crate inlining)
+codegen-units = 1      # Single codegen unit = better optimization
+strip = "symbols"      # Remove debug symbols from release binary
+panic = "abort"        # Abort on panic instead of unwinding (smaller binary)
+debug = false          # No debug info in release
+
+# Dev profile: fast compilation for development
+[profile.dev]
+opt-level = 0          # No optimization for fast compile
+debug = true           # Include debug info for backtraces
+
+# Test profile: balanced
+[profile.test]
+opt-level = 2
+debug = true
+
+# Bench profile: max performance
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = false
